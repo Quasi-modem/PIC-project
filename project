@@ -1,0 +1,264 @@
+/*
+ * File:   main.c
+ * Author: Quasi-modem
+ *
+ * Created on October 6, 2017, 7:21 AM
+ */
+
+
+#pragma config MCLRE=OFF, WDT=ON, LVP=OFF, OSC=IRCIO67, PBADEN=OFF
+#include <xc.h>
+#include <stdio.h>
+
+#define _XTAL_FREQ 8000000   /* Set oscillator frequency to 8MHz */
+
+#define switch1  PORTAbits.RA0  // Sensor on RA0
+#define switch2  PORTAbits.RA1  // Sensor on RA1
+#define switch3  PORTAbits.RA2  // Sensor on RA2
+
+#define led1    LATBbits.LATB0     // led1
+#define led2    LATBbits.LATB1     // led2
+#define led3    LATBbits.LATB2     // led3
+
+#define score PORTBbits.RB3     // Scoreboard
+#define timer PORTBbits.RB4     // 555 timer
+
+#define diff1  PORTDbits.RD7  // Difficulty switch
+#define start  PORTDbits.RD5  // Start button
+
+int x=30;  /* Sets variable x=30 at the start of the function. This starts
+              the count at 30 seconds for the countdown. */
+
+void main(void) 
+{
+
+/* Input output settings*/
+
+       TRISAbits.TRISA0 = 1;     // RA0 Input for taking input from IR sensor
+       TRISAbits.TRISA1 = 1;     // RA1 Input for taking input from IR sensor
+       TRISAbits.TRISA2 = 1;     // RA2 Input for taking input from IR sensor
+
+       TRISDbits.TRISD7 = 1;     // RD7 Input for difficulty switch easy
+       TRISDbits.TRISD5 = 1;     // RD5 Input for start button
+
+       TRISBbits.TRISB0 = 0;     // RB0 Output LED
+       TRISBbits.TRISB1 = 0;     // RB1 Output LED
+       TRISBbits.TRISB2 = 0;     // RB2 Output LED
+       
+       TRISBbits.TRISB3 = 0;     // RB3 Output to scoreboard
+       TRISBbits.TRISB4 = 0;     // RB4 Output 555 timer
+
+       CMCON = 0x07;             // Disable Comparator
+
+       ADCON1bits.PCFG0 = 1;   // These 4 settings below determines the analog or digital input
+       ADCON1bits.PCFG1 = 1;   // Making all the pins digital
+       ADCON1bits.PCFG2 = 1;   // by setting them as 1111
+       ADCON1bits.PCFG3 = 1;         
+
+       ADCON0bits.ADON = 0;  //  Disabled ADC
+    
+
+OSCCONbits.IRCF2=1; // Set internal frequency to 8MHZ
+OSCCONbits.IRCF1=1; // Set internal frequency to 8MHZ
+OSCCONbits.IRCF0=1; // Set internal frequency to 8MHZ
+OSCCONbits.SCS1=1;  // Sets chip to internal oscillation
+T0CONbits.TMR0ON=0; // Stops Timer
+T0CONbits.T08BIT=0; // Sets 16-bit
+T0CONbits.T0CS=0;   // Specifies internal clock
+T0CONbits.PSA=0;    // Enables Prescaler
+T0CONbits.T0PS2=1;  // Sets Prescaler to 32
+T0CONbits.T0PS1=0;  // Sets Prescaler to 32
+T0CONbits.T0PS0=0;  // Sets Prescaler to 32
+TMR0H=0x0B;         // Sets Preload value "H" for 1 second delay
+TMR0L=0xDC;         // Sets Preload Value "L" or 1 second delay
+T0CONbits.TMR0ON=1; // Starts Timer
+
+//__delay_ms(500);    // Half second delay to allow screen to setup
+
+
+/* If you want the microcontroller to work at  1MHZ then 
+  * comment the three lines below */
+
+ OSCCONbits.IRCF0 = 1;        // set internal clock to 8 MHz
+ OSCCONbits.IRCF1 = 1;        // For Avoiding switch debouncing problem      
+ OSCCONbits.IRCF2 = 1;                
+
+ 
+   
+    {
+ /* This will be the code for the difficulty switch easy mode */
+        if (diff1 == 0) { // If difficulty switch is low, it is in Easy mode
+
+        if (start == 1){    // when start button is pressed
+        led1 = 0;       // turn on target LEDs
+        led2 = 0;
+        led3 = 0;
+        
+        timer = 1;      // turn on 555 timer
+		
+		/* Internal timer code for 30 second coundown */
+        
+while (INTCONbits.TMR0IF==0);   /* While Timer interrupt overflow flag equals
+                                  zero stay here*/
+TMR0H=0x0B;         // Starts count at PRELOAD to get 1 second
+TMR0L=0xDC;         // Starts count at PRELOAD to get 1 second
+INTCONbits.TMR0IF=0;// Set overflow interrupt flag to zero
+x=x-1;              // Sets a countdown from 30 to 0
+            
+        }
+        }
+ while (x<=30 && x>0)// while x is between these parameters do what is below
+            {
+            if(switch1 == 1)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led1 = 0;
+                             if(led1 == 0)
+                             { 
+                                 score = 0;}
+					}
+                                     else {    }
+            if(switch2 == 1)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led2 = 0;
+                             if(led2 == 0)
+                             {
+                             score = 0;}
+					}
+                                     else {    }
+            if(switch3 == 1)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led3 = 0;
+                             if(led3 == 0)
+                             {
+                             score = 0;}
+                    }
+                                     else {    }
+            
+            while(PORTB == 0xFF) { //If all LEDs are off
+            }      
+            }
+
+    }
+            
+     /* This will be the code for hard mode */
+
+        if (diff1 == 1) // If difficulty switch is high, it is in Hard mode
+        {
+        if (start == 1)    // when start button is pressed
+        {
+        led1 = 1;       // turn on target LEDs
+        led2 = 0;
+        led3 = 1;
+        }
+        if(switch2 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led2 = 1;
+                             if(led2 == 1)
+                             {
+                             score = 0;}
+					}
+                                     else {    }
+        
+        
+        led1 = 1;       // turn on target LEDs
+        led2 = 1;
+        led3 = 0;
+        
+        if(switch3 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led3 = 1;
+                             if(led3 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        
+        led1 = 0;       // turn on target LEDs
+        led2 = 1;
+        led3 = 1;
+        
+        if(switch1 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led1 = 1;
+                             if(led1 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        
+        led1 = 1;       // turn on target LEDs
+        led2 = 0;
+        led3 = 1;
+        
+        if(switch1 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led2 = 1;
+                             if(led2 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        led1 = 0;       // turn on target LEDs
+        led2 = 1;
+        led3 = 1;
+        
+        if(switch1 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led1 = 1;
+                             if(led1 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        led1 = 0;       // turn on target LEDs
+        led2 = 0;
+        led3 = 1;
+        
+        if(switch3 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led3 = 1;
+                             if(led3 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        led1 = 1;       // turn on target LEDs
+        led2 = 0;
+        led3 = 1;
+        
+        if(switch2 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led2 = 1;
+                             if(led2 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        
+        led1 = 0;       // turn on target LEDs
+        led2 = 1;
+        led3 = 1;
+        
+        if(switch1 == 0)    //   On reading IR sensor value ON
+                    {    //Turn led OFF
+                             led1 = 1;
+                             if(led1 == 1)
+                             {
+                             score = 1;}
+					}
+                                     else {    }
+        }
+            
+
+ 
+ if (x == 0)      // when time reaches zero
+{
+    timer = 0;  // stop 555 timer
+}
+__delay_ms(500);
+ 
+
+while(1);           // Stops the program here
+    
+return;
+}
